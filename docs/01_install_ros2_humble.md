@@ -1,9 +1,8 @@
 # 🚀【ROS2 入门系列 #1】Ubuntu 22.04 从零配置 ROS2 Humble（含虚拟机网络修复）
 
-> 作者：whatqiu
-> 环境：Ubuntu 22.04（VMware 虚拟机）  
-> 目标版本：ROS 2 Humble Hawksbill  
+> 作者：whatqiu  
 > 更新时间：2025-11-04  
+> 环境：Ubuntu 22.04 + ROS2 Humble  
 
 ---
 
@@ -12,8 +11,8 @@
 这篇文章记录了我在 **Ubuntu 22.04 虚拟机** 上从零成功配置 ROS2 Humble 的完整过程。
 
 中间经历了：
+
 - 虚拟机断网、桥接模式失效  
-- DNS 被代理污染  
 - ROS2 源码下载失败 (`not found`)  
 - `ros2 not found` 的环境问题  
 
@@ -21,7 +20,7 @@
 
 ---
 
-## 🌐 一、虚拟机网络修复过程
+## 🌐 一、虚拟机网络修复过程（<span style="text-decoration: underline wavy;">也有可能没有用管理员权限打开VM ware</span>）
 
 最初因为设置了系统代理，后来关机重启后，发现 Ubuntu 里：
 
@@ -44,6 +43,7 @@
 2. 找到你正在使用的真实网卡（Wi-Fi 或 以太网）  
 3. **右键 → 属性**  
 4. 确保：
+
 - ✅ **VMware Bridge Protocol** 被勾选  
 - ✅ **IPv4 / IPv6** 都保持勾选  
 
@@ -64,12 +64,14 @@
 - ✅ **VMware Bridge Protocol** 被勾选  
 - ✅ **IPv4 / IPv6** 都保持勾选  
 
----
+4. 启动 Ubuntu 后修复网络
 
-### 🔄 2. 重启 VMware 网络服务
+   进入虚拟机后，在终端执行：
 
-点击 VMware 顶部菜单：
-sudo dhclient -v
+   ```bash
+   sudo systemctl restart NetworkManager
+   sudo nmcli networking on
+   sudo dhclient -v
 
 说明：
 
@@ -219,6 +221,7 @@ source ~/.bashrc
 
 
 ##  📚 八、 延伸阅读
+
 - [ROS2 官方安装指南](https://docs.ros.org/en/humble/Installation.html)
 - [colcon build 教程](https://colcon.readthedocs.io/en/released/)
 - [ROS2 CLI 命令参考](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools.html)
@@ -233,4 +236,8 @@ source ~/.bashrc
 ------
 
 > 💬 本文记录了 Ubuntu 虚拟机下 ROS2 安装与网络修复的完整过程，
->  希望能帮助到遇到同样问题的你。
+> 希望能帮助到遇到同样问题的你。
+
+---
+
+📘 下一章：敬请期待
