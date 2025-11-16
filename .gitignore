@@ -4,6 +4,23 @@ install/
 log/
 __pycache__/
 .vscode/
+.claude/
 .idea/
 *.pyc
 .DS_Store
+
+# Claude Code
+.claude/
+*.claude-session
+.claude-logs/
+
+# Obsidian
+.obsidian/
+*.md.workspace
+*.md.workspace-backup
+.ob.workaround/
+
+# Additional development tools
+.venv/
+env/
+*.egg-info/
