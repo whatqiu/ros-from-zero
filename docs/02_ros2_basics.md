@@ -161,9 +161,16 @@ Publisher count: 1
 Subscription count: 1
 ```
 
+### 发布者-订阅者工作原理
+
+在 turtlesim 中：
+- **发布者**：`turtle_teleop_key` 节点将键盘输入转换为速度指令
+- **订阅者**：`turtlesim_node` 节点接收速度指令并移动小乌龟
+- **话题**：`/turtle1/cmd_vel` 作为通信桥梁
+
 ### 直接发布话题数据
 
-我们也可以直接通过命令行发送移动指令：
+我们也可以直接通过命令行模拟发布者：
 
 **单次发送**：
 ```bash
@@ -178,6 +185,141 @@ ros2 topic pub --rate 1 /turtle1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 1
 ```
 
 按 `Ctrl+C` 停止发送。
+
+### 创建自定义发布者（Python 示例）
+
+让我们创建一个简单的发布者，让小乌龟自动移动：
+
+**创建文件** `turtle_publisher.py`：
+```python
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+
+class TurtlePublisher(Node):
+    def __init__(self):
+        super().__init__('turtle_publisher')
+
+        # 创建发布者，发布到 /turtle1/cmd_vel 话题
+        self.publisher = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
+
+        # 创建定时器，每 0.5 秒调用一次
+        timer_period = 0.5
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+
+        self.get_logger().info('Turtle publisher 已启动！')
+
+    def timer_callback(self):
+        # 创建消息对象
+        msg = Twist()
+
+        # 设置线速度和角速度（让小乌龟画圈）
+        msg.linear.x = 2.0
+        msg.angular.z = 1.0
+
+        # 发布消息
+        self.publisher.publish(msg)
+        self.get_logger().info(f'发布速度指令: 线速度={msg.linear.x}, 角速度={msg.angular.z}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    turtle_publisher = TurtlePublisher()
+
+    try:
+        rclpy.spin(turtle_publisher)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        turtle_publisher.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+### 创建自定义订阅者（Python 示例）
+
+现在创建一个订阅者来监听小乌龟的位置：
+
+**创建文件** `pose_subscriber.py`：
+```python
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from turtlesim.msg import Pose
+
+class PoseSubscriber(Node):
+    def __init__(self):
+        super().__init__('pose_subscriber')
+
+        # 创建订阅者，订阅 /turtle1/pose 话题
+        self.subscription = self.create_subscription(
+            Pose,
+            '/turtle1/pose',
+            self.pose_callback,
+            10
+        )
+        self.subscription  # 防止编译器警告
+
+        self.get_logger().info('Pose subscriber 已启动！')
+
+    def pose_callback(self, msg):
+        # 当接收到位置消息时的回调函数
+        self.get_logger().info(
+            f'小乌龟位置: x={msg.x:.2f}, y={msg.y:.2f}, 角度={msg.theta:.2f}'
+        )
+
+def main(args=None):
+    rclpy.init(args=args)
+    pose_subscriber = PoseSubscriber()
+
+    try:
+        rclpy.spin(pose_subscriber)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        pose_subscriber.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+### 运行自定义节点
+
+**步骤 1**：给脚本添加执行权限
+```bash
+chmod +x turtle_publisher.py pose_subscriber.py
+```
+
+**步骤 2**：运行 turtlesim（如果没有运行的话）
+```bash
+ros2 run turtlesim turtlesim_node
+```
+
+**步骤 3**：运行我们的自定义发布者
+```bash
+python3 turtle_publisher.py
+```
+
+你会看到小乌龟开始自动画圈，同时终端会输出速度指令。
+
+**步骤 4**：在另一个终端运行订阅者
+```bash
+python3 pose_subscriber.py
+```
+
+现在你可以实时看到小乌龟的位置信息！
+
+### 话题通信的特点
+
+1. **解耦合**：发布者和订阅者不需要知道对方的存在
+2. **一对多**：一个发布者可以有多个订阅者
+3. **异步通信**：发布者发送消息后不需要等待响应
+4. **类型安全**：发布者和订阅者必须使用相同的消息类型
 
 ---
 
@@ -442,11 +584,11 @@ chmod +x draw_square.sh
 
 ### 下一步学习方向
 
-- 学习创建自己的 ROS2 包和节点
-- 理解消息（Message）和服务（Service）定义
-- 掌握启动文件（Launch File）的使用
+- 📘 [03 - 创建第一个 ROS2 工作空间与 Python 节点](03_first_workspace_and_node.md)
+- 📘 [04 - ROS2 命令行工具详解](04_ros2_cli_tools.md)
+- 📘 [05 - 话题发布与订阅深入](05_topics_pub_sub.md)
 - 了解动作（Action）和参数服务器的进阶用法
 
 ---
 
-📘 下一章：ROS2 编程入门 - 创建你的第一个节点
+📘 下一章：[创建第一个 ROS2 工作空间与 Python 节点](03_first_workspace_and_node.md)
