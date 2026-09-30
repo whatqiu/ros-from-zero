@@ -123,7 +123,11 @@ sudo apt install -y ros-humble-example-interfaces ros-humble-turtlesim ros-humbl
 find code/examples -name "*.py" -exec chmod +x {} \;
 
 # 给 Shell 脚本添加执行权限
+# 注意：bash 默认不递归展开 **，要用 globstar 或直接 find
+shopt -s globstar
 chmod +x code/examples/**/*.sh
+# 更稳妥的写法（不依赖 shell 选项）
+find code/examples -name "*.sh" -exec chmod +x {} \;
 ```
 
 ## 🧪 测试和调试
@@ -145,12 +149,24 @@ ros2 topic hz /topic
 
 ### 查看日志
 ```bash
-# 查看特定节点的日志
-ros2 log info minimal_publisher
+# 查看节点日志文件（ROS2 把日志写在 ~/.ros/log/ 下）
+ls -lt ~/.ros/log/ | head
 
-# 启用调试日志
+# 实时查看最新日志
+tail -f $(ls -t ~/.ros/log/latest/rclpy.*.log 2>/dev/null | head -1)
+
+# 调整节点的日志级别（启动时）
 ros2 run turtlesim turtlesim_node --ros-args --log-level DEBUG
+
+# 运行中动态调整某个节点的日志级别
+ros2 service call /turtlesim/set_logger_levels \
+  rcl_interfaces/srv/SetLoggerLevels \
+  "{levels: [{logger: 'turtlesim', level: 10}]}"
 ```
+
+> ⚠️ **关于 `ros2 log`**：ROS2 **没有** `ros2 log info` 这个子命令（ROS1 的 `roslaunch` 才有类似的日志工具）。
+> ROS2 里查看日志用两种方式：一是直接读 `~/.ros/log/` 下的文件，二是通过 `--log-level` 参数控制输出级别。
+> 输入 `ros2 log` 会提示 `invalid choice`。
 
 ## 🔗 相关文档
 

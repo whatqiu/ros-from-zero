@@ -58,16 +58,28 @@ def main(args=None):
     """
     rclpy.init(args=args)
 
+    # 注意：必须先在 try 外面初始化为 None。
+    # 如果写成 "try 里面赋值"，那么当 MinimalPublisher() 构造抛异常时，
+    # finally 块里的 minimal_publisher 变量还没被赋值，
+    # 会引发 UnboundLocalError，把真正的错误掩盖掉。
+    minimal_publisher = None
+
     try:
         minimal_publisher = MinimalPublisher()
         rclpy.spin(minimal_publisher)
     except KeyboardInterrupt:
-        minimal_publisher.get_logger().info('Keyboard interrupt, shutting down')
+        # 用 print 而非 get_logger，因为此时节点可能还没创建成功
+        if minimal_publisher is not None:
+            minimal_publisher.get_logger().info('Keyboard interrupt, shutting down')
     except Exception as e:
-        minimal_publisher.get_logger().error(f'Error in main: {e}')
+        if minimal_publisher is not None:
+            minimal_publisher.get_logger().error(f'Error in main: {e}')
+        else:
+            print(f'Failed to start node: {e}', file=sys.stderr)
     finally:
-        minimal_publisher.destroy_node()
-        rclpy.shutdown()
+        if minimal_publisher is not None:
+            minimal_publisher.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 # 🔄【ROS2 入门系列 #5】话题通信详解（Publisher / Subscriber / QoS）
 
 > 作者：whatqiu
-> 更新时间：2025-11-12
+> 更新时间：2026-1-31
 > 环境：Ubuntu 22.04 + ROS2 Humble
 
 ---
@@ -11,6 +11,7 @@
 在上一章中，我们学习了 ROS2 常用的命令行工具，可以查看和调试节点、话题、服务等。但是，要真正理解 ROS2 的通信机制，我们需要深入了解话题（Topic）的发布-订阅模型以及如何在代码中实现。
 
 本章将带你深入话题通信的实现细节：
+
 - 如何编写发布者（Publisher）节点
 - 如何编写订阅者（Subscriber）节点
 - 理解消息（Message）类型
@@ -20,6 +21,7 @@
 **预计学习时间**：45-60 分钟
 
 **前置章节**：
+
 - [02 - ROS2 架构与基础概念全解析](02_ros2_basics.md)
 - [03 - 创建第一个 ROS2 工作空间与 Python 节点](03_first_workspace_and_node.md)
 - [04 - ROS2 常用命令行工具与调试技巧](04_ros2_cli_tools.md)
@@ -58,14 +60,14 @@
 
 #### 常见的标准消息类型
 
-| 包名 | 消息类型 | 用途 |
-|------|----------|------|
-| `std_msgs/msg/String` | 字符串消息 | 文本数据 |
-| `std_msgs/msg/Int32` | 32位整数 | 数值数据 |
-| `std_msgs/msg/Float64` | 64位浮点数 | 浮点数值 |
-| `geometry_msgs/msg/Twist` | 速度消息 | 线速度+角速度 |
-| `sensor_msgs/msg/LaserScan` | 激光扫描 | 激光雷达数据 |
-| `sensor_msgs/msg/Image` | 图像消息 | 摄像头图像 |
+| 包名                          | 消息类型   | 用途      |
+| --------------------------- | ------ | ------- |
+| `std_msgs/msg/String`       | 字符串消息  | 文本数据    |
+| `std_msgs/msg/Int32`        | 32位整数  | 数值数据    |
+| `std_msgs/msg/Float64`      | 64位浮点数 | 浮点数值    |
+| `geometry_msgs/msg/Twist`   | 速度消息   | 线速度+角速度 |
+| `sensor_msgs/msg/LaserScan` | 激光扫描   | 激光雷达数据  |
+| `sensor_msgs/msg/Image`     | 图像消息   | 摄像头图像   |
 
 #### 查看消息结构
 
@@ -75,6 +77,7 @@ ros2 interface show geometry_msgs/msg/Twist
 ```
 
 输出：
+
 ```
 # This message expresses a velocity in free space broken into its linear and angular parts.
 Vector3  linear
@@ -169,20 +172,25 @@ if __name__ == '__main__':
 #### 关键代码解析
 
 **1. 创建发布者**：
+
 ```python
 self.publisher = self.create_publisher(Float32, 'temperature', 10)
 ```
+
 - `Float32`：消息类型
 - `'temperature'`：话题名称
 - `10`：队列大小（QoS 参数，后面详细介绍）
 
 **2. 创建定时器**：
+
 ```python
 self.timer = self.create_timer(timer_period, self.timer_callback)
 ```
+
 定时器会定期调用回调函数，无需手动循环。
 
 **3. 发布消息**：
+
 ```python
 msg = Float32()           # 创建消息对象
 msg.data = self.temperature  # 设置数据
@@ -287,6 +295,7 @@ if __name__ == '__main__':
 #### 关键代码解析
 
 **1. 创建订阅者**：
+
 ```python
 self.subscription = self.create_subscription(
     Float32,
@@ -297,17 +306,21 @@ self.subscription = self.create_subscription(
 ```
 
 **2. 回调函数**：
+
 ```python
 def temperature_callback(self, msg):
     temperature = msg.data
     # 处理接收到的数据
 ```
+
 当有消息到达时，ROS2 会自动调用这个回调函数。
 
 **3. 防止垃圾回收**：
+
 ```python
 self.subscription  # 避免未使用变量警告
 ```
+
 这行代码确保订阅者对象不会被 Python 垃圾回收机制回收。
 
 #### 配置 setup.py
@@ -337,6 +350,7 @@ colcon build --packages-select topic_demo
 #### Source 环境
 
 打开新终端：
+
 ```bash
 source ~/ros2_ws/install/setup.bash
 ```
@@ -344,11 +358,13 @@ source ~/ros2_ws/install/setup.bash
 #### 运行发布者
 
 **终端 1**：
+
 ```bash
 ros2 run topic_demo temperature_publisher
 ```
 
 你应该看到：
+
 ```
 [INFO] [temperature_publisher]: 温度发布者已启动
 [INFO] [temperature_publisher]: 发布温度: 25.23°C
@@ -359,11 +375,13 @@ ros2 run topic_demo temperature_publisher
 #### 运行订阅者
 
 **终端 2**：
+
 ```bash
 ros2 run topic_demo temperature_subscriber
 ```
 
 你应该看到：
+
 ```
 [INFO] [temperature_subscriber]: 温度订阅者已启动
 [INFO] [temperature_subscriber]: 当前温度: 25.23°C, 近 1 次平均: 25.23°C
@@ -376,16 +394,21 @@ ros2 run topic_demo temperature_subscriber
 **终端 3**：
 
 **查看话题列表**：
+
 ```bash
 ros2 topic list
 ```
+
 应该包含 `/temperature` 话题。
 
 **查看话题详细信息**：
+
 ```bash
 ros2 topic info /temperature
 ```
+
 输出：
+
 ```
 Type: std_msgs/msg/Float32
 Publisher count: 1
@@ -393,11 +416,13 @@ Subscription count: 1
 ```
 
 **实时监控话题数据**：
+
 ```bash
 ros2 topic echo /temperature
 ```
 
 **查看话题发布频率**：
+
 ```bash
 ros2 topic hz /temperature
 ```
@@ -467,11 +492,13 @@ if __name__ == '__main__':
 #### 配置和运行
 
 添加到 `setup.py`：
+
 ```python
 'temperature_logger = topic_demo.temperature_logger:main',
 ```
 
 重新编译后，可以同时运行：
+
 - 1 个发布者
 - 2 个订阅者（`temperature_subscriber` 和 `temperature_logger`）
 
@@ -486,19 +513,22 @@ QoS（Quality of Service）是 ROS2 中非常重要的概念，用于控制通�
 #### 什么是 QoS？
 
 QoS 策略决定了：
+
 - 消息如何传输
 - 消息丢失时如何处理
 - 订阅者何时能接收到消息
 
 #### 默认 QoS 策略
 
-当我们使用 `10` 作为队列大小时，实际上使用的是默认 QoS 配置：
+当我们直接传一个整数 `10` 作为队列大小时，`rclpy` 会自动把它包装成默认的 QoS 配置。默认值是 `RELIABLE` + `VOLATILE` + `KEEP_LAST`。
 
 ```python
-# 这两行代码是等价的
+# 这两种写法是等价的
 self.publisher = self.create_publisher(Float32, 'temperature', 10)
-self.publisher = self.create_publisher(Float32, 'temperature', qos_profile=10)
+self.publisher = self.create_publisher(Float32, 'temperature', depth=10)
 ```
+
+> ⚠️ **注意**：不要写 `qos_profile=10`。`qos_profile` 是关键字参数名，它期望的是一个 `QoSProfile` 对象，不是整数。传整数进去会报类型错误。正确的简写方式是直接用 `depth=10`，或者干脆按位置传 `10`。
 
 #### 自定义 QoS 配置
 
@@ -520,24 +550,24 @@ self.publisher = self.create_publisher(Float32, 'temperature', qos_profile)
 
 ##### 1. 历史策略（History Policy）
 
-| 策略 | 说明 |
-|------|------|
+| 策略          | 说明                     |
+| ----------- | ---------------------- |
 | `KEEP_LAST` | 只保留最后 N 条消息（N = depth） |
-| `KEEP_ALL` | 保留所有消息（直到队列满） |
+| `KEEP_ALL`  | 保留所有消息（直到队列满）          |
 
 ##### 2. 可靠性策略（Reliability Policy）
 
-| 策略 | 说明 | 适用场景 |
-|------|------|----------|
-| `RELIABLE` | 确保消息可靠传输，丢失会重传 | 关键数据（命令、配置） |
-| `BEST_EFFORT` | 尽力传输，不保证可靠性 | 高频数据（传感器、视频） |
+| 策略            | 说明             | 适用场景         |
+| ------------- | -------------- | ------------ |
+| `RELIABLE`    | 确保消息可靠传输，丢失会重传 | 关键数据（命令、配置）  |
+| `BEST_EFFORT` | 尽力传输，不保证可靠性    | 高频数据（传感器、视频） |
 
 ##### 3. 持久性策略（Durability Policy）
 
-| 策略 | 说明 |
-|------|------|
-| `VOLATILE` | 不保存历史消息，订阅者只能收到订阅后的消息 |
-| `TRANSIENT_LOCAL` | 保存最后一条消息，新订阅者会立即收到 |
+| 策略                | 说明                    |
+| ----------------- | --------------------- |
+| `VOLATILE`        | 不保存历史消息，订阅者只能收到订阅后的消息 |
+| `TRANSIENT_LOCAL` | 保存最后一条消息，新订阅者会立即收到    |
 
 #### 实战示例：配置不同 QoS 策略
 
@@ -594,15 +624,15 @@ self.subscription = self.create_subscription(
 
 **重要**：发布者和订阅者的 QoS 策略必须兼容才能通信！
 
-| 发布者 | 订阅者 | 能否通信 |
-|--------|--------|----------|
-| RELIABLE | RELIABLE | ✅ |
-| RELIABLE | BEST_EFFORT | ✅ |
-| BEST_EFFORT | RELIABLE | ❌（不兼容） |
-| BEST_EFFORT | BEST_EFFORT | ✅ |
-| VOLATILE | VOLATILE | ✅ |
-| VOLATILE | TRANSIENT_LOCAL | ✅ |
-| TRANSIENT_LOCAL | VOLATILE | ❌（不兼容） |
+| 发布者             | 订阅者             | 能否通信   |
+| --------------- | --------------- | ------ |
+| RELIABLE        | RELIABLE        | ✅      |
+| RELIABLE        | BEST_EFFORT     | ✅      |
+| BEST_EFFORT     | RELIABLE        | ❌（不兼容） |
+| BEST_EFFORT     | BEST_EFFORT     | ✅      |
+| VOLATILE        | VOLATILE        | ✅      |
+| VOLATILE        | TRANSIENT_LOCAL | ✅      |
+| TRANSIENT_LOCAL | VOLATILE        | ❌（不兼容） |
 
 **口诀**：订阅者的要求不能比发布者高。
 
@@ -733,18 +763,21 @@ entry_points={
 #### 测试聊天系统
 
 **终端 1** - 运行订阅者（监听所有消息）：
+
 ```bash
 source ~/ros2_ws/install/setup.bash
 ros2 run topic_demo chat_subscriber
 ```
 
 **终端 2** - 运行第一个发布者：
+
 ```bash
 source ~/ros2_ws/install/setup.bash
 ros2 run topic_demo chat_publisher Alice
 ```
 
 **终端 3** - 运行第二个发布者：
+
 ```bash
 source ~/ros2_ws/install/setup.bash
 ros2 run topic_demo chat_publisher Bob
@@ -822,13 +855,13 @@ def temperature_callback(self, msg):
 
 ### 核心知识点回顾
 
-| 概念 | 说明 | 关键代码 |
-|------|------|----------|
-| **发布者** | 向话题发送数据 | `create_publisher(type, topic, qos)` |
-| **订阅者** | 从话题接收数据 | `create_subscription(type, topic, callback, qos)` |
-| **消息类型** | 定义数据格式 | `std_msgs/msg/Float32`, `geometry_msgs/msg/Twist` |
-| **回调函数** | 处理接收到的消息 | `def callback(self, msg):` |
-| **QoS** | 控制通信质量 | `QoSProfile(history, reliability, durability)` |
+| 概念       | 说明       | 关键代码                                              |
+| -------- | -------- | ------------------------------------------------- |
+| **发布者**  | 向话题发送数据  | `create_publisher(type, topic, qos)`              |
+| **订阅者**  | 从话题接收数据  | `create_subscription(type, topic, callback, qos)` |
+| **消息类型** | 定义数据格式   | `std_msgs/msg/Float32`, `geometry_msgs/msg/Twist` |
+| **回调函数** | 处理接收到的消息 | `def callback(self, msg):`                        |
+| **QoS**  | 控制通信质量   | `QoSProfile(history, reliability, durability)`    |
 
 ### 代码模板速查
 
@@ -891,12 +924,12 @@ if __name__ == '__main__':
 
 ### QoS 策略选择指南
 
-| 场景 | History | Reliability | Durability |
-|------|---------|-------------|------------|
-| 高频传感器 | KEEP_LAST | BEST_EFFORT | VOLATILE |
-| 控制命令 | KEEP_LAST | RELIABLE | VOLATILE |
-| 配置参数 | KEEP_LAST | RELIABLE | TRANSIENT_LOCAL |
-| 日志数据 | KEEP_ALL | BEST_EFFORT | VOLATILE |
+| 场景    | History   | Reliability | Durability      |
+| ----- | --------- | ----------- | --------------- |
+| 高频传感器 | KEEP_LAST | BEST_EFFORT | VOLATILE        |
+| 控制命令  | KEEP_LAST | RELIABLE    | VOLATILE        |
+| 配置参数  | KEEP_LAST | RELIABLE    | TRANSIENT_LOCAL |
+| 日志数据  | KEEP_ALL  | BEST_EFFORT | VOLATILE        |
 
 ### 下一步学习方向
 

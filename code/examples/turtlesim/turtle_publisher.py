@@ -67,6 +67,9 @@ def main(args=None):
     """
     rclpy.init(args=args)
 
+    # 先在 try 外初始化，避免构造失败时 finally 里出现 UnboundLocalError
+    turtle_publisher = None
+
     try:
         turtle_publisher = TurtlePublisher()
 
@@ -74,13 +77,21 @@ def main(args=None):
         rclpy.spin(turtle_publisher)
 
     except KeyboardInterrupt:
-        turtle_publisher.get_logger().info('Keyboard interrupt, shutting down')
+        if turtle_publisher is not None:
+            turtle_publisher.get_logger().info('Keyboard interrupt, shutting down')
     except Exception as e:
-        turtle_publisher.get_logger().error(f'Error in main: {e}')
+        if turtle_publisher is not None:
+            turtle_publisher.get_logger().error(f'Error in main: {e}')
+        else:
+            print(f'Failed to start node: {e}', file=sys.stderr)
     finally:
-        # Clean up
-        turtle_publisher.destroy_node()
-        rclpy.shutdown()
+        # 关键：退出前必须发一条零速度指令把海龟停下来。
+        # 否则 turtlesim 会一直执行最后收到的速度，海龟停不下来。
+        if turtle_publisher is not None:
+            stop_msg = Twist()
+            turtle_publisher.publisher_.publish(stop_msg)
+            turtle_publisher.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

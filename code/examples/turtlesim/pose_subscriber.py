@@ -62,6 +62,9 @@ def main(args=None):
     """
     rclpy.init(args=args)
 
+    # 先在 try 外初始化，避免构造失败时 finally 里出现 UnboundLocalError
+    pose_subscriber = None
+
     try:
         pose_subscriber = PoseSubscriber()
 
@@ -69,13 +72,18 @@ def main(args=None):
         rclpy.spin(pose_subscriber)
 
     except KeyboardInterrupt:
-        pose_subscriber.get_logger().info('Keyboard interrupt, shutting down')
+        if pose_subscriber is not None:
+            pose_subscriber.get_logger().info('Keyboard interrupt, shutting down')
     except Exception as e:
-        pose_subscriber.get_logger().error(f'Error in main: {e}')
+        if pose_subscriber is not None:
+            pose_subscriber.get_logger().error(f'Error in main: {e}')
+        else:
+            print(f'Failed to start node: {e}', file=sys.stderr)
     finally:
         # Clean up
-        pose_subscriber.destroy_node()
-        rclpy.shutdown()
+        if pose_subscriber is not None:
+            pose_subscriber.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

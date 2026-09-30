@@ -19,6 +19,9 @@ __pycache__/
 *.md.workspace
 *.md.workspace-backup
 .ob.workaround/
+*.base
+未命名*.base
+未命名*.md
 
 # Additional development tools
 .venv/

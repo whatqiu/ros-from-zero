@@ -63,16 +63,24 @@ def main(args=None):
     """
     rclpy.init(args=args)
 
+    # 先在 try 外初始化，避免构造失败时 finally 里出现 UnboundLocalError
+    minimal_service = None
+
     try:
         minimal_service = MinimalService()
         rclpy.spin(minimal_service)
     except KeyboardInterrupt:
-        minimal_service.get_logger().info('Keyboard interrupt, shutting down')
+        if minimal_service is not None:
+            minimal_service.get_logger().info('Keyboard interrupt, shutting down')
     except Exception as e:
-        minimal_service.get_logger().error(f'Error in main: {e}')
+        if minimal_service is not None:
+            minimal_service.get_logger().error(f'Error in main: {e}')
+        else:
+            print(f'Failed to start node: {e}', file=sys.stderr)
     finally:
-        minimal_service.destroy_node()
-        rclpy.shutdown()
+        if minimal_service is not None:
+            minimal_service.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
