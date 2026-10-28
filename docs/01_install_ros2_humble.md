@@ -1,7 +1,7 @@
 # 🚀【ROS2 入门系列 #1】Ubuntu 22.04 从零配置 ROS2 Humble（含虚拟机网络修复）
 
 > 作者：whatqiu  
-> 更新时间：2025-11-04  
+> 更新时间：2026-10-28
 > 环境：Ubuntu 22.04 + ROS2 Humble  
 
 ---
@@ -111,7 +111,22 @@ curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-a
 sudo dpkg -i /tmp/ros2-apt-source.deb
 ```
 
-### 3. 安装公共包
+### 3. 初学者推荐：直接安装软件包
+
+完成源配置后，使用官方 deb 包即可，无需编译整个 ROS2：
+
+```bash
+sudo apt update
+sudo apt install -y ros-humble-desktop ros-dev-tools ros-humble-turtlesim
+source /opt/ros/humble/setup.bash
+ros2 run turtlesim turtlesim_node
+```
+
+使用此路线时，跳过下面的源码依赖、第三节和第四节，直接阅读第六节的自动加载配置。
+安装前请确认 UTF-8 locale（`locale`）；没有配置时按官方安装指南的 Set locale 步骤配置。
+参考：[官方 Humble 软件包安装说明](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)。
+
+### 4. 仅源码构建需要：安装公共包
 
 ```bash
 sudo apt update && sudo apt install -y \
@@ -121,7 +136,7 @@ sudo apt update && sudo apt install -y \
   ros-dev-tools
 ```
 
-### 4. 安装 Ubuntu 22.04+ 额外依赖
+### 5. 仅源码构建需要：额外依赖
 
 ```bash
 sudo apt install -y \
@@ -165,10 +180,18 @@ fatal: repository 'https://mirrors.tuna.tsinghua.edu.cn/git/ament/ament_cmake.gi
 
 ```bash
 # 下载官方仓库配置文件
+mkdir -p ~/ros2_humble/src
+cd ~/ros2_humble
 wget https://raw.githubusercontent.com/ros2/ros2/humble/ros2.repos
 
 # 导入源码仓库
 vcs import src < ros2.repos
+
+# 初始化 rosdep（已初始化过则跳过 init），解析源码依赖
+sudo rosdep init
+rosdep update
+rosdep install --from-paths src --ignore-src --rosdistro humble -y \
+  --skip-keys "fastcdr rti-connext-dds-6.0.1 urdfdom_headers"
 ```
 
 ------
@@ -222,8 +245,11 @@ usage: ros2 [-h] [--use-python-default-buffering] <command> ...
 每次手动 `source` 很麻烦，可将其写入 `~/.bashrc`：
 
 ```bash
-# 将 ROS2 环境添加到 bashrc
+# deb 安装路线：将 ROS2 环境添加到 bashrc（只执行一次）
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+# 如果选择源码构建，改用下面这一行，不要同时添加上面那一行
+# echo 'source ~/ros2_humble/install/setup.bash' >> ~/.bashrc
 
 # 重新加载 bashrc
 source ~/.bashrc

@@ -1,0 +1,38 @@
+name: ROS examples
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [humble, jazzy]
+    container: ros:${{ matrix.distro }}-ros-base
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install example interfaces
+        run: |
+          apt-get update
+          apt-get install -y ros-${{ matrix.distro }}-example-interfaces
+      - name: Check Python and shell syntax
+        run: |
+          python3 -m compileall -q code
+          bash -n code/examples/turtlesim/draw_square.sh
+      - name: Run parameter regressions
+        shell: bash
+        run: |
+          source /opt/ros/${{ matrix.distro }}/setup.bash
+          python3 -m unittest discover -s code/tests -v
+      - name: Check service round trip and invalid input
+        shell: bash
+        run: |
+          source /opt/ros/${{ matrix.distro }}/setup.bash
+          python3 code/examples/services/add_two_ints_server.py &
+          server_pid=$!
+          trap 'kill -INT "$server_pid" 2>/dev/null || true' EXIT
+          timeout 30 python3 code/examples/services/add_two_ints_client.py 5 3 | tee /tmp/client.log
+          grep -q '5 + 3 = 8' /tmp/client.log
+          if python3 code/examples/services/add_two_ints_client.py invalid 3; then
+            echo 'Invalid input was unexpectedly accepted'
+            exit 1
+          fi

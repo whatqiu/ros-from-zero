@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import sys
 
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import SetParametersResult
-from rclpy.parameter import Parameter
 
 
 class MinimalParam(Node):
@@ -39,7 +39,10 @@ class MinimalParam(Node):
         self.declare_parameter('enable_logging', True)
 
         # Create timer based on frequency parameter
-        timer_period = 1.0 / self.get_parameter('update_frequency').value
+        frequency = self.get_parameter('update_frequency').value
+        if not math.isfinite(frequency) or not 0.1 <= frequency <= 1000.0:
+            raise ValueError('update_frequency must be finite and between 0.1 and 1000.0 Hz')
+        timer_period = 1.0 / frequency
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.count = 0
 
@@ -62,45 +65,32 @@ class MinimalParam(Node):
         Returns:
             SetParametersResult indicating success or failure
         """
-        result = SetParametersResult()
-
+        # Only validate here: a later callback may still reject the transaction.
         for param in parameters:
-            if param.name == 'my_parameter':
-                if isinstance(param.value, str):
-                    result.successful = True
-                else:
-                    result.reason = 'my_parameter must be a string'
-                    result.successful = False
-
-            elif param.name == 'update_frequency':
-                if isinstance(param.value, (int, float)) and param.value > 0:
-                    # Update timer frequency
-                    self.timer.destroy()
-                    new_timer_period = 1.0 / param.value
-                    self.timer = self.create_timer(new_timer_period, self.timer_callback)
-                    result.successful = True
-                    self.get_logger().info('Update frequency changed to %.1f Hz' % param.value)
-                else:
-                    result.reason = 'update_frequency must be a positive number'
-                    result.successful = False
-
+            if param.name == 'update_frequency':
+                if (type(param.value) is not float
+                        or not math.isfinite(param.value) or not 0.1 <= param.value <= 1000.0):
+                    return SetParametersResult(
+                        successful=False,
+                        reason='update_frequency must be a finite double between 0.1 and 1000.0 Hz')
+            elif param.name == 'my_parameter':
+                if not isinstance(param.value, str):
+                    return SetParametersResult(successful=False, reason='my_parameter must be a string')
             elif param.name == 'enable_logging':
-                if isinstance(param.value, bool):
-                    result.successful = True
-                else:
-                    result.reason = 'enable_logging must be a boolean'
-                    result.successful = False
-
-            else:
-                result.successful = False
-
-        return result
+                if not isinstance(param.value, bool):
+                    return SetParametersResult(successful=False, reason='enable_logging must be a boolean')
+        return SetParametersResult(successful=True)
 
     def timer_callback(self):
         """
         Callback function called periodically by the timer.
         """
         my_param = self.get_parameter('my_parameter').value
+        # Read the committed value on the next tick; compatible with Humble/Jazzy.
+        period_ns = round(1e9 / self.get_parameter('update_frequency').value)
+        if self.timer.timer_period_ns != period_ns:
+            self.timer.timer_period_ns = period_ns
+            self.timer.reset()
         enable_logging = self.get_parameter('enable_logging').value
 
         if enable_logging:

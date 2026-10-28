@@ -3,7 +3,7 @@
 ![ROS2](https://img.shields.io/badge/ROS2-Humble-blue)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Status](https://img.shields.io/badge/status-learning%20in%20progress-yellow)
 
 > 🚀 从零开始学习 ROS2 的完整系列教程  
 > 从环境配置、通信机制、构建与仿真，到完整机器人项目实战。  
@@ -95,8 +95,10 @@ ROS2 每年 5 月发一版，偶数年是 LTS。当前状态：
 **选择建议**：
 
 - **手上已有硬件**：跟着厂商文档走，厂商支持哪个版本就用哪个
-- **从零学起**：本系列代码在 Humble 与 Jazzy 上**基本通用**，只需替换环境变量中的版本号
-- **注意**：ROS2 每个版本只支持**一个** Ubuntu LTS。Jazzy 装不上 22.04，这是新手高频踩坑点
+- **从零学起**：按本教程使用 Ubuntu 22.04 + Humble；使用 Jazzy 时需匹配 Ubuntu 24.04、依赖包名称和各章差异说明，不能只替换环境变量。
+- **平台支持**：官方 Ubuntu deb 包有明确的目标系统（Humble 对应 22.04，Jazzy 对应 24.04）；其他平台及源码构建支持请查 [REP 2000](https://www.ros.org/reps/rep-2000.html)。
+
+版本信息核对：2026-10-28。发行状态以 [ROS 官方发行索引](https://github.com/ros/rosdistro/blob/master/index-v4.yaml) 为准；本仓库尚未验证 Lyrical 的示例兼容性。
 
 > 每章末尾的「Humble 与 Jazzy 差异对照」小节，会明确标注该章代码在两个版本间是否需要改动。
 
@@ -119,7 +121,14 @@ ROS2 每年 5 月发一版，偶数年是 LTS。当前状态：
 ---
 
 ## 📄 License
-本项目采用 [MIT License](LICENSE)。
+本项目根目录许可为 [MIT License](LICENSE)。现有示例文件中保留的 Apache 2.0 许可与上游版权声明仍适用于对应文件，请按文件头部说明使用；项目级 MIT 声明不替代这些声明。
+
+## 最近维护（2026-10-28）
+
+- 修复小乌龟画方形的速度指令超时问题，改用持续发布；轨迹仍为定时开环近似。
+- 修复参数批量校验、启动频率校验，以及客户端参数解析、超时和退出清理。
+- 补充软件包安装与源码安装的区别，增加 Humble/Jazzy 自动检查配置。
+- 自动检查结果以仓库 Actions 为准；本地静态检查不代表 ROS 仿真运行通过。
 
 ---
 

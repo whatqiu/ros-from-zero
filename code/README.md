@@ -11,7 +11,8 @@ code/
     ├── turtlesim/            # turtlesim 相关示例
     │   ├── turtle_publisher.py    # 小乌龟速度发布者
     │   ├── pose_subscriber.py     # 小乌龟位置订阅者
-    │   └── draw_square.sh          # 画正方形脚本
+    │   ├── draw_square.py          # 20 Hz 持续发布，定时画近似正方形
+    │   └── draw_square.sh          # Python 节点的启动入口
     ├── topics/               # 话题通信示例
     │   ├── simple_publisher.py     # 最小发布者示例
     │   └── simple_subscriber.py    # 最小订阅者示例
@@ -58,7 +59,11 @@ python3 pose_subscriber.py
 cd code/examples/turtlesim
 chmod +x draw_square.sh
 ./draw_square.sh
+# 也可以直接运行（不需要设置执行权限）
+python3 draw_square.py
 ```
+
+画方形节点会等待 turtlesim 订阅者出现。Humble turtlesim 在约 1 秒没有新速度指令时自动停车，因此不能用单次发布加长时间 sleep 控制运动。示例每 0.05 秒发布一次；边长约 1.5 米，采用定时开环控制，调度延迟会产生误差。请从默认中心位置运行，并关闭其他速度发布者。
 
 ### 📢 topics 示例
 ```bash
@@ -85,6 +90,8 @@ python3 add_two_ints_client.py 5 3
 python3 add_two_ints_client.py
 ```
 
+客户端只接受零个或两个整数；服务等待和响应等待分别最多 10 秒，超时返回非零状态。支持在整数之后附加 `--ros-args` 参数。
+
 ### ⚙️ parameters 示例
 ```bash
 # 启动参数示例
@@ -102,6 +109,8 @@ ros2 param list /minimal_param_node
 # 查看参数值
 ros2 param get /minimal_param_node my_parameter
 ```
+
+`update_frequency` 使用 double 类型，请写 `2.0`。允许范围为 0.1–1000.0 Hz，拒绝零、负数和非有限值。回调先校验整组参数；通过后的频率在下一个定时器回调生效（默认最多约 1 秒，0.1 Hz 时最多约 10 秒）。
 
 ## 📝 环境准备
 

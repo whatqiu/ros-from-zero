@@ -85,11 +85,11 @@ def main(args=None):
         else:
             print(f'Failed to start node: {e}', file=sys.stderr)
     finally:
-        # 关键：退出前必须发一条零速度指令把海龟停下来。
-        # 否则 turtlesim 会一直执行最后收到的速度，海龟停不下来。
+        # 主动停车；Humble turtlesim 约 1 秒没有新指令后也会自动停止。
         if turtle_publisher is not None:
             stop_msg = Twist()
-            turtle_publisher.publisher_.publish(stop_msg)
+            if rclpy.ok():
+                turtle_publisher.publisher_.publish(stop_msg)
             turtle_publisher.destroy_node()
         rclpy.try_shutdown()
 

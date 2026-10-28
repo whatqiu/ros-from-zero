@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import sys
-
-from time import sleep
 
 import rclpy
 from rclpy.node import Node
+from rclpy.utilities import remove_ros_args
+from rclpy.executors import ExternalShutdownException
 from example_interfaces.srv import AddTwoInts
 
 
@@ -34,11 +35,9 @@ class MinimalClientAsync(Node):
     def __init__(self):
         super().__init__('minimal_client_async')
         self.cli = self.create_client(AddTwoInts, 'add_two_ints')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
         self.req = AddTwoInts.Request()
 
-    def send_request(self, a, b):
+    def send_request(self, a, b, timeout=10.0):
         """
         Send a request to the add_two_ints service.
 
@@ -46,10 +45,16 @@ class MinimalClientAsync(Node):
             a: First integer to add
             b: Second integer to add
         """
+        if not self.cli.wait_for_service(timeout_sec=timeout):
+            raise TimeoutError('add_two_ints service did not become available')
         self.req.a = a
         self.req.b = b
         self.future = self.cli.call_async(self.req)
-        rclpy.spin_until_future_complete(self, self.future)
+        rclpy.spin_until_future_complete(self, self.future, timeout_sec=timeout)
+        if not self.future.done():
+            self.cli.remove_pending_request(self.future)
+            self.future.cancel()
+            raise TimeoutError('add_two_ints response timed out')
         return self.future.result()
 
 
@@ -57,33 +62,30 @@ def main(args=None):
     """
     Main function to initialize and run the minimal client node.
     """
+    parser = argparse.ArgumentParser(description='Call add_two_ints (defaults: 2 + 3)')
+    parser.add_argument('numbers', nargs='*', type=int)
+    parsed = parser.parse_args(remove_ros_args(args=args)[1:])
+    if len(parsed.numbers) not in (0, 2):
+        parser.error('provide exactly two integers, or none for defaults')
+    a, b = parsed.numbers or (2, 3)
+    if any(not -(2**63) <= value < 2**63 for value in (a, b, a + b)):
+        parser.error('inputs and their sum must fit in signed 64-bit integers')
     rclpy.init(args=args)
-
-    minimal_client = MinimalClientAsync()
-
-    # Use default values if no arguments provided
-    if len(sys.argv) > 2:
-        try:
-            a = int(sys.argv[1])
-            b = int(sys.argv[2])
-        except ValueError:
-            minimal_client.get_logger().error('Please provide valid integers')
-            return 1
-    else:
-        a = 2
-        b = 3
-        minimal_client.get_logger().info('Using default values: a=2, b=3')
-
+    minimal_client = None
     try:
+        minimal_client = MinimalClientAsync()
         response = minimal_client.send_request(a, b)
         minimal_client.get_logger().info(
             'Result of add_two_ints: for %d + %d = %d' % (a, b, response.sum))
+    except (KeyboardInterrupt, ExternalShutdownException):
+        return 130
     except Exception as e:
-        minimal_client.get_logger().error(f'Service call failed: {e}')
+        print(f'Service call failed: {e}', file=sys.stderr)
         return 1
     finally:
-        minimal_client.destroy_node()
-        rclpy.shutdown()
+        if minimal_client is not None:
+            minimal_client.destroy_node()
+        rclpy.try_shutdown()
 
     return 0
 
